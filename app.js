@@ -1,6 +1,6 @@
 ﻿$(document).ready(function () {
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
+    const root = window.location.origin;
     // --- GLOBAL STATE ---
     const IMGBB_API_KEY = '240e18a9ba44ea52c1ca5f09a336da9a'; // Replace with actual API Key
     let db = JSON.parse(localStorage.getItem('codingvila_img_db')) || [];
@@ -38,7 +38,7 @@
     $('#btn-login').click(function () {
         const u = $('#login-user').val();
         const p = $('#login-pass').val();
-        if (u === 'admin' && p === 'admin123') {
+        if (u === 'admin' && p === 'admin@CV!@#') {
             sessionStorage.setItem('isLoggedIn', 'true');
             $('#login-overlay').fadeOut();
             $('#app-wrapper').fadeIn();
@@ -52,8 +52,6 @@
 
         }
     });
-
-
 
     $('#app-tabs a').click(function (e) { e.preventDefault(); navigate($(this).data('tab')); });
     $('#sidebar-toggle').click(() => $('#sidebar').toggleClass('active'));
@@ -162,6 +160,7 @@
         Object.keys(groups).forEach(gName => {
             tbody.append(`<tr class="group-header"><td colspan="6"><i class="fas fa-folder-open me-2 text-primary"></i>${gName}</td></tr>`);
             groups[gName].forEach(img => {
+                var imgurl = `${root}/download.html?url=${encodeURIComponent(img.url)}&name=${encodeURIComponent(img.name)}`;
                 tbody.append(`
                     <tr>
                         <td><input type="checkbox" class="lib-row-check form-check-input" data-id="${img.id}"></td>
@@ -170,8 +169,8 @@
                         <td class="small text-muted">${img.date}</td>
                         <td>
                             <div class="input-group input-group-sm" style="max-width: 250px">
-                                <input type="text" class="form-control bg-light border-0 x-small" value="${img.url}" readonly>
-                                <button class="btn btn-primary" onclick="copyLink('${img.url}')"><i class="fas fa-copy"></i></button>
+                                <input type="text" class="form-control bg-light border-0 x-small" value="${imgurl}" readonly>
+                                <button class="btn btn-primary" onclick="copyLink('${imgurl}')"><i class="fas fa-copy"></i></button>
                             </div>
                         </td>
                         <td class="text-center">
@@ -292,10 +291,11 @@
     window.openView = (id) => {
         const item = db.find(i => i.id == id);
         if (!item) return;
+        var imgurl = `${root}/download.html?url=${encodeURIComponent(item.url)}&name=${encodeURIComponent(item.name)}`;
         ssPointer = state.currentGalBatch.findIndex(i => i.id == id);
-        $('#modal-img').attr('src', item.url);
+        $('#modal-img').attr('src', imgurl);
         $('#modal-dl').off().on('click', () => forceDownload(item.url, item.name));
-        $('#modal-copy').off().on('click', () => copyLink(item.url));
+        $('#modal-copy').off().on('click', () => copyLink(imgurl));
         new mdb.Modal(document.getElementById('viewModal')).show();
     };
 
@@ -325,45 +325,7 @@
 
     $('#viewModal').on('hidden.bs.modal', () => { toggleSS(false); $('#ss-ui').addClass('d-none'); });
 
-    // --- ZIP (BINARY SAFE FIX) ---
-    //window.processZip = async (mode) => {
-    //    let list = [];
-    //    if (mode === 'selected') {
-    //        const ids = $('.lib-row-check:checked').map(function () { return $(this).data('id'); }).get();
-    //        list = db.filter(i => ids.includes(i.id));
-    //    } else if (mode === 'gal-selected') {
-    //        const ids = $('.gal-row-check:checked').map(function () { return $(this).data('id'); }).get();
-    //        list = db.filter(i => ids.includes(i.id));
-    //    } else if (mode === 'all') {
-    //        list = db;
-    //    } else if (mode === 'date' || mode === 'month') {
-    //        promptBox(
-    //            `Enter ${mode}`,
-    //            mode === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM',
-    //            (val) => {
-    //                if (val) list = db.filter(i => i[mode] === val);
-    //            }
-    //        );
-    //    }
-
-    //    if (list.length === 0) return showToast("No images selected or found", "error");
-
-    //    const zip = new JSZip();
-    //    showToast(`Preparing ${list.length} assets...`, "info");
-
-    //    try {
-    //        for (let img of list) {
-    //            // CORRUPTION FIX: Use arrayBuffer() for reliable binary data transfer
-    //            const resp = await fetch(img.url);
-    //            const buffer = await resp.arrayBuffer();
-    //            zip.file(img.name, buffer);
-    //        }
-    //        const blob = await zip.generateAsync({ type: "blob" });
-    //        saveAs(blob, `Codingvila_Archive_${Date.now()}.zip`);
-    //        showToast("ZIP ready for download", "success");
-    //    } catch (e) { showToast("Process failed", "error"); }
-    //};
-
+    // --- DIRECT DOWNLOAD  ---
     window.processDirectDownload = async (mode) => {
         let list = [];
 
@@ -442,12 +404,10 @@
 
         if (list.length === 0) return showToast("Nothing to export", "error");
 
-        // Get root URL dynamically
-        const root = window.location.origin; // e.g., https://yourdomain.com
-
         const mapped = list.map(i => ({
             "Asset Name": i.name,
             // Relative download.html path with root URL
+            "Download URL": `${root}/download.html?url=${encodeURIComponent(i.url)}&name=${encodeURIComponent(i.name)}`,
             "Download Link": `HYPERLINK("${root}/download.html?url=${encodeURIComponent(i.url)}&name=${encodeURIComponent(i.name)}","Download")`,
             "Date": i.date,
             "Type": i.ext

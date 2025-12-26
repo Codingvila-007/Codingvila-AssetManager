@@ -2,33 +2,185 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Download Asset</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codingvila | Secure Download</title>
+    <!-- Fonts & Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <!-- MDB UI Kit -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/7.1.0/mdb.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background-color: #f8faff;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .download-card {
+            width: 100%;
+            max-width: 450px;
+            border-radius: 24px;
+            border: none;
+            text-align: center;
+        }
+
+        .icon-box {
+            width: 80px;
+            height: 80px;
+            background: rgba(18, 102, 241, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% {
+                box-shadow: 0 0 0 0px rgba(18, 102, 241, 0.4);
+            }
+
+            100% {
+                box-shadow: 0 0 0 20px rgba(18, 102, 241, 0);
+            }
+        }
+
+        .file-name {
+            font-weight: 700;
+            color: #2c3e50;
+            word-break: break-all;
+        }
+
+        #status-text {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .footer-brand {
+            position: absolute;
+            bottom: 30px;
+            font-size: 0.85rem;
+            color: #adb5bd;
+        }
+    </style>
 </head>
 <body>
+
+    <div class="card download-card shadow-5-strong p-5">
+        <div class="card-body">
+            <!-- Dynamic Icon -->
+            <div id="icon-container" class="icon-box pulse">
+                <i class="fas fa-cloud-arrow-down fa-2x text-primary"></i>
+            </div>
+
+            <h4 class="mb-2">Download Ready</h4>
+            <p id="status-text" class="mb-4">We are preparing your asset for a secure download.</p>
+
+            <div class="bg-light p-3 rounded-4 mb-4">
+                <div class="file-name" id="display-name">File Name</div>
+                <small class="text-muted">Direct asset from Codingvila Cloud</small>
+            </div>
+
+            <!-- Manual Download Button (Hidden by default) -->
+            <div id="action-area">
+                <div class="progress rounded-pill mb-3" style="height: 10px;">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                </div>
+                <p class="small text-muted">Please wait while we fetch the binary data...</p>
+            </div>
+
+            <button id="btn-manual" class="btn btn-primary btn-lg rounded-pill px-5 shadow-0 d-none">
+                <i class="fas fa-download me-2"></i>Download Now
+            </button>
+
+            <div id="error-area" class="d-none">
+                <p class="text-danger small mb-3">Download encountered an issue.</p>
+                <button onclick="location.reload()" class="btn btn-outline-danger rounded-pill px-4">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-brand">
+        Powered by <b>Codingvila.com</b> Secure Cloud Asset Manager
+    </div>
+
     <script>
-(async () => {
-    const params = new URLSearchParams(location.search);
-    const url = params.get("url");
-    const name = params.get("name") || "file";
+        (async () => {
+            const params = new URLSearchParams(location.search);
+            const url = params.get("url");
+            const name = params.get("name") || "codingvila_asset";
 
-    if (!url) {
-        alert("Missing URL");
-        return;
-    }
+            const displayName = document.getElementById("display-name");
+            const progressBar = document.getElementById("progress-bar");
+            const statusText = document.getElementById("status-text");
+            const actionArea = document.getElementById("action-area");
+            const btnManual = document.getElementById("btn-manual");
+            const errorArea = document.getElementById("error-area");
+            const iconContainer = document.getElementById("icon-container");
 
-    try {
-        const res = await fetch(url, { mode: "cors" });
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = name;
-        a.click();
-        URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-        alert("Download failed: " + err.message);
-    }
-})();
+            displayName.innerText = name;
+
+            if (!url) {
+                statusText.innerText = "Error: Invalid download link.";
+                actionArea.classList.add("d-none");
+                errorArea.classList.remove("d-none");
+                return;
+            }
+
+            try {
+                // Start fetch
+                progressBar.style.width = "40%";
+                const res = await fetch(url, { mode: "cors" });
+
+                if (!res.ok) throw new Error("Server responded with error");
+
+                const blob = await res.blob();
+                progressBar.style.width = "100%";
+
+                const blobUrl = URL.createObjectURL(blob);
+
+                // Set manual fallback button just in case
+                btnManual.onclick = () => {
+                    const a = document.createElement("a");
+                    a.href = blobUrl;
+                    a.download = name;
+                    a.click();
+                };
+
+                // Auto Trigger
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Success UI
+                statusText.innerText = "Success! Your download should have started.";
+                iconContainer.innerHTML = '<i class="fas fa-check fa-2x text-success"></i>';
+                iconContainer.classList.remove("pulse");
+                iconContainer.style.background = "rgba(0, 183, 74, 0.1)";
+                actionArea.classList.add("d-none");
+                btnManual.classList.remove("d-none");
+
+            } catch (err) {
+                statusText.innerText = "Network Error: Unable to fetch file.";
+                iconContainer.innerHTML = '<i class="fas fa-exclamation-triangle fa-2x text-danger"></i>';
+                iconContainer.classList.remove("pulse");
+                iconContainer.style.background = "rgba(249, 49, 84, 0.1)";
+                actionArea.classList.add("d-none");
+                errorArea.classList.remove("d-none");
+                console.error(err);
+            }
+        })();
     </script>
 </body>
 </html>
