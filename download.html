@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Download Asset</title>
+</head>
+<body>
+    <script>
+(async () => {
+    const params = new URLSearchParams(location.search);
+    const url = params.get("url");
+    const name = params.get("name") || "file";
+
+    if (!url) {
+        alert("Missing URL");
+        return;
+    }
+
+    try {
+        const res = await fetch(url, { mode: "cors" });
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+        alert("Download failed: " + err.message);
+    }
+})();
+    </script>
+</body>
+</html>
